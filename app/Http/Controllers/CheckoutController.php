@@ -7,10 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Services\Payments\PaypalPaymentService;
 use App\Services\Payments\StripePaymentService;
 use App\Services\Payments\CashOnDeliveryService;
+use App\Services\Payments\PaymentGatewayFactory;
 
 class CheckoutController extends Controller
 {
-    public function pay(Request $request)
+    public function pay(Request $request, PaymentGatewayFactory $factory)
     {
         $validated = $request->validate(
             [
@@ -21,16 +22,7 @@ class CheckoutController extends Controller
 
         $gateway = $validated['gateway'];
 
-        if ($gateway === 'stripe') {
-            $service = new StripePaymentService();
-        } elseif ($gateway === 'paypal') {
-            $service = new PaypalPaymentService();
-        } elseif ($gateway === 'cod') {
-            $service = new CashOnDeliveryService();
-        } else {
-            throw new \InvalidArgumentException("Invalid payment gateway.");
-        }
-
+        $service = $factory->make($gateway);
         $result = $service->charge($validated['amount']);
 
         return response()->json(['message' => $result, 'status' => 'success']);
